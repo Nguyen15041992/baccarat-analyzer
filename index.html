@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baccarat Pattern Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        h2 {
+            text-align: center;
+            color: #ffcc00;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-p { background-color: #007bff; color: white; }
+        .btn-b { background-color: #dc3545; color: white; }
+        .btn-t { background-color: #28a745; color: white; }
+        .btn-reset { background-color: #6c757d; color: white; margin-top: 10px; width: 100%; }
+        
+        .history-box, .result-box {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            min-height: 50px;
+            word-wrap: break-word;
+        }
+        .tag-p { display: inline-block; background: #007bff; color: white; width: 25px; height: 25px; text-align: center; line-height: 25px; border-radius: 50%; margin: 2px; font-weight: bold; }
+        .tag-b { display: inline-block; background: #dc3545; color: white; width: 25px; height: 25px; text-align: center; line-height: 25px; border-radius: 50%; margin: 2px; font-weight: bold; }
+        .tag-t { display: inline-block; background: #28a745; color: white; width: 25px; height: 25px; text-align: center; line-height: 25px; border-radius: 50%; margin: 2px; font-weight: bold; }
+        
+        .alert-warning {
+            background: #5a3200;
+            border-left: 5px solid #ff9900;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Baccarat Pattern Analyzer</h2>
+    
+    <div class="alert-warning">
+        <strong>Lưu ý:</strong> Công cụ chỉ mang tính chất thống kê chuỗi logic lịch sử. Không đảm bảo kết quả thắng thua tuyệt đối. Hãy quản lý vốn cẩn thận!
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-p" onclick="addResult('P')">PLAYER (P)</button>
+        <button class="btn-b" onclick="addResult('B')">BANKER (B)</button>
+        <button class="btn-t" onclick="addResult('T')">TIE (T)</button>
+    </div>
+
+    <h3>Lịch sử bàn chơi:</h3>
+    <div class="history-box" id="historyDisplay">Chưa có dữ liệu...</div>
+
+    <h3>Nhận diện thế cầu:</h3>
+    <div class="result-box" id="analysisDisplay">Đang chờ nhập liệu...</div>
+
+    <button class="btn-reset" onclick="resetData()">Xóa lịch sử làm lại</button>
+</div>
+
+<script>
+    let historyList = [];
+
+    function addResult(type) {
+        historyList.push(type);
+        updateUI();
+    }
+
+    function resetData() {
+        historyList = [];
+        updateUI();
+    }
+
+    function updateUI() {
+        // Hiển thị lịch sử
+        const historyDiv = document.getElementById('historyDisplay');
+        if (historyList.length === 0) {
+            historyDiv.innerHTML = "Chưa có dữ liệu...";
+            document.getElementById('analysisDisplay').innerHTML = "Đang chờ nhập liệu...";
+            return;
+        }
+
+        historyDiv.innerHTML = historyList.map(item => {
+            let cls = item === 'P' ? 'tag-p' : (item === 'B' ? 'tag-b' : 'tag-t');
+            return `<span class="${cls}">${item}</span>`;
+        }).join('');
+
+        analyzePatterns();
+    }
+
+    function analyzePatterns() {
+        const analysisDiv = document.getElementById('analysisDisplay');
+        // Lọc bỏ Tie để tính toán chuỗi cầu chính P/B
+        let cleanList = historyList.filter(x => x !== 'T');
+        if (cleanList.length < 3) {
+            analysisDiv.innerHTML = "Cần ít nhất 3 ván (không tính Hòa) để nhận diện cầu.";
+            return;
+        }
+
+        // Tính độ dài các chuỗi liên tiếp (Runs)
+        let runs = [];
+        let currentRunChar = cleanList[0];
+        let currentRunLen = 1;
+
+        for (let i = 1; i < cleanList.length; i++) {
+            if (cleanList[i] === currentRunChar) {
+                currentRunLen++;
+            } else {
+                runs.push(currentRunLen);
+                currentRunChar = cleanList[i];
+                currentRunLen = 1;
+            }
+        }
+        runs.push(currentRunLen);
+
+        let detected = [];
+        let lastRun = runs[runs.length - 1];
+        let prevRun = runs.length >= 2 ? runs[runs.length - 2] : 0;
+
+        // Kiểm tra cầu bệt (chuỗi dài >= 4)
+        if (lastRun >= 4) {
+            detected.push(`🔥 <b>Cầu Bệt</b> đang chạy mạnh (${lastRun tay liên tiếp})`);
+        }
+
+        // Kiểm tra chuỗi cầu cụ thể dựa trên mảng runs gần nhất
+        let recentRunsStr = runs.slice(-5).join('-');
+        
+        const knownPatterns = {
+            "1-1": "Cầu 1-1 (Đảo liên tục P-B-P-B)",
+            "1-2": "Cầu 1-2",
+            "2-1": "Cầu 2-1",
+            "1-2-1": "Cầu 1-2-1",
+            "1-3-1": "Cầu 1-3-1",
+            "2-2": "Cầu 2-2 (2 Nhà cái - 2 Nhà con)",
+            "1-2-3": "Cầu 1-2-3",
+            "3-2-1": "Cầu 3-2-1",
+            "2-1-2": "Cầu 2-1-2",
+            "2-3-2": "Cầu 2-3-2",
+            "3-2-3": "Cầu 3-2-3",
+            "3-1-2": "Cầu 3-1-2",
+            "3-2-2": "Cầu 3-2-2",
+            "4-1-2": "Cầu 4-1-2",
+            "4-2-2": "Cầu 4-2-2",
+            "4-3-2": "Cầu 4-3-2",
+            "4-2-3": "Cầu 4-2-3"
+        };
+
+        for (let key in knownPatterns) {
+            if (recentRunsStr.endsWith(key)) {
+                detected.push(`✨ Khớp mẫu cầu: <b>${knownPatterns[key]}</b> (${recentRunsStr})`);
+            }
+        }
+
+        // Cầu khít (nhịp ngắn đan xen khít nhau)
+        if (runs.slice(-3).every(r => r === 1)) {
+            detected.push("⚡ Phát hiện <b>Cầu Khít / Nhịp ngắn 1-1-1</b>");
+        }
+
+        if (detected.length === 0) {
+            detected.push(`Đang theo dõi nhịp chuỗi gần nhất: [ ${recentRunsStr} ]. Chưa khớp rõ ràng các mẫu cầu tiêu chuẩn.`);
+        }
+
+        // Gợi ý xu hướng dự đoán dựa vào thế cầu hiện tại
+        let nextSuggest = cleanList[cleanList.length - 1] === 'P' ? 'B' : 'P';
+        if (lastRun >= 3) {
+            nextSuggest = cleanList[cleanList.length - 1]; // Theo bệt nếu chưa gãy
+        }
+
+        analysisDiv.innerHTML = detected.join('<br>') + `<br><br>👉 <b>Gợi ý xu hướng tiếp theo:</b> <span style="color: #ffcc00; font-size: 18px;">${nextSuggest}</span>`;
+    }
+</script>
+
+</body>
+</html>
